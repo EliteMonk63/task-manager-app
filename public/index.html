@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TaskFlow — Task Manager</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --surface2: #1c1c27;
+      --border: #2a2a3d;
+      --accent: #7c5cfc;
+      --accent2: #fc5c7d;
+      --text: #e8e8f0;
+      --muted: #6b6b8a;
+      --success: #5cfca0;
+      --radius: 12px;
+    }
+
+    body {
+      font-family: 'Syne', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      top: -200px; left: -200px;
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(124,92,252,0.12) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container { max-width: 780px; margin: 0 auto; position: relative; z-index: 1; }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 2.5rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo {
+      font-size: 1.8rem;
+      font-weight: 800;
+      letter-spacing: -1px;
+    }
+
+    .logo span { color: var(--accent); }
+
+    .stats {
+      display: flex;
+      gap: 1.5rem;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .stats strong { color: var(--text); font-size: 1.1rem; display: block; }
+
+    .add-form {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      display: flex;
+      gap: 1rem;
+      align-items: flex-end;
+      flex-wrap: wrap;
+    }
+
+    .form-group { display: flex; flex-direction: column; gap: 0.4rem; flex: 1; min-width: 200px; }
+    .form-group label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+
+    input, select, textarea {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      font-size: 0.95rem;
+      padding: 0.65rem 1rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+    select option { background: var(--surface2); }
+
+    .btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 0.65rem 1.5rem;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      white-space: nowrap;
+    }
+
+    .btn:hover { opacity: 0.85; transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+
+    .filters {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      color: var(--muted);
+      cursor: pointer;
+      font-family: 'Syne', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 0.4rem 1rem;
+      transition: all 0.2s;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .filter-btn.active, .filter-btn:hover {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    .tasks-list { display: flex; flex-direction: column; gap: 0.75rem; }
+
+    .task-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.2rem 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      transition: border-color 0.2s, transform 0.2s;
+      animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .task-card:hover { border-color: var(--accent); transform: translateX(4px); }
+    .task-card.done { opacity: 0.5; }
+    .task-card.done .task-title { text-decoration: line-through; }
+
+    .task-check {
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: all 0.2s;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .task-check:hover { border-color: var(--accent); }
+    .task-check.checked { background: var(--success); border-color: var(--success); }
+    .task-check.checked::after { content: '✓'; color: #0a0a0f; font-size: 0.75rem; font-weight: 800; }
+
+    .task-body { flex: 1; }
+    .task-title { font-weight: 600; font-size: 1rem; margin-bottom: 0.25rem; }
+    .task-meta { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; }
+
+    .priority-badge {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 4px;
+      font-weight: 500;
+    }
+
+    .priority-high { background: rgba(252,92,125,0.15); color: var(--accent2); }
+    .priority-medium { background: rgba(124,92,252,0.15); color: var(--accent); }
+    .priority-low { background: rgba(92,252,160,0.15); color: var(--success); }
+
+    .task-date { font-size: 0.75rem; color: var(--muted); font-family: 'DM Mono', monospace; }
+
+    .task-actions { display: flex; gap: 0.5rem; }
+
+    .icon-btn {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 0.85rem;
+      padding: 0.4rem 0.6rem;
+      transition: all 0.2s;
+    }
+
+    .icon-btn:hover { color: var(--accent2); border-color: var(--accent2); }
+
+    .empty {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: var(--muted);
+    }
+
+    .empty .icon { font-size: 3rem; margin-bottom: 1rem; }
+    .empty p { font-size: 1rem; }
+
+    @media (max-width: 600px) {
+      body { padding: 1rem; }
+      .add-form { flex-direction: column; }
+      .stats { gap: 1rem; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="logo">Task<span>Flow</span></div>
+    <div class="stats">
+      <div><strong id="total-count">0</strong>Total</div>
+      <div><strong id="done-count">0</strong>Done</div>
+      <div><strong id="pending-count">0</strong>Pending</div>
+    </div>
+  </header>
+
+  <div class="add-form">
+    <div class="form-group" style="flex:2">
+      <label>Task Title</label>
+      <input type="text" id="task-title" placeholder="What needs to be done?" />
+    </div>
+    <div class="form-group">
+      <label>Priority</label>
+      <select id="task-priority">
+        <option value="medium">Medium</option>
+        <option value="high">High</option>
+        <option value="low">Low</option>
+      </select>
+    </div>
+    <button class="btn" onclick="addTask()">+ Add Task</button>
+  </div>
+
+  <div class="filters">
+    <button class="filter-btn active" onclick="setFilter('all', this)">All</button>
+    <button class="filter-btn" onclick="setFilter('pending', this)">Pending</button>
+    <button class="filter-btn" onclick="setFilter('done', this)">Completed</button>
+    <button class="filter-btn" onclick="setFilter('high', this)">🔥 High Priority</button>
+  </div>
+
+  <div class="tasks-list" id="tasks-list"></div>
+</div>
+
+<script>
+  let tasks = [];
+  let filter = 'all';
+
+  async function fetchTasks() {
+    try {
+      const res = await fetch('/api/tasks');
+      tasks = await res.json();
+      renderTasks();
+      updateStats();
+    } catch {
+      tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
+      renderTasks();
+      updateStats();
+    }
+  }
+
+  async function addTask() {
+    const title = document.getElementById('task-title').value.trim();
+    const priority = document.getElementById('task-priority').value;
+    if (!title) return;
+
+    const task = { id: Date.now(), title, priority, done: false, createdAt: new Date().toISOString() };
+
+    try {
+      const res = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(task)
+      });
+      const saved = await res.json();
+      tasks.unshift(saved);
+    } catch {
+      tasks.unshift(task);
+      localStorage.setItem('tasks', JSON.stringify(tasks));
+    }
+
+    document.getElementById('task-title').value = '';
+    renderTasks();
+    updateStats();
+  }
+
+  async function toggleTask(id) {
+    const task = tasks.find(t => t.id == id);
+    if (!task) return;
+    task.done = !task.done;
+
+    try {
+      await fetch(`/api/tasks/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(task)
+      });
+    } catch {
+      localStorage.setItem('tasks', JSON.stringify(tasks));
+    }
+    renderTasks();
+    updateStats();
+  }
+
+  async function deleteTask(id) {
+    tasks = tasks.filter(t => t.id != id);
+    try {
+      await fetch(`/api/tasks/${id}`, { method: 'DELETE' });
+    } catch {
+      localStorage.setItem('tasks', JSON.stringify(tasks));
+    }
+    renderTasks();
+    updateStats();
+  }
+
+  function setFilter(f, btn) {
+    filter = f;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderTasks();
+  }
+
+  function renderTasks() {
+    const list = document.getElementById('tasks-list');
+    let filtered = tasks;
+    if (filter === 'pending') filtered = tasks.filter(t => !t.done);
+    if (filter === 'done') filtered = tasks.filter(t => t.done);
+    if (filter === 'high') filtered = tasks.filter(t => t.priority === 'high');
+
+    if (!filtered.length) {
+      list.innerHTML = `<div class="empty"><div class="icon">✦</div><p>No tasks here. Add one above!</p></div>`;
+      return;
+    }
+
+    list.innerHTML = filtered.map(task => `
+      <div class="task-card ${task.done ? 'done' : ''}">
+        <div class="task-check ${task.done ? 'checked' : ''}" onclick="toggleTask(${task.id})"></div>
+        <div class="task-body">
+          <div class="task-title">${task.title}</div>
+          <div class="task-meta">
+            <span class="priority-badge priority-${task.priority}">${task.priority}</span>
+            <span class="task-date">${new Date(task.createdAt).toLocaleDateString()}</span>
+          </div>
+        </div>
+        <div class="task-actions">
+          <button class="icon-btn" onclick="deleteTask(${task.id})">✕</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function updateStats() {
+    document.getElementById('total-count').textContent = tasks.length;
+    document.getElementById('done-count').textContent = tasks.filter(t => t.done).length;
+    document.getElementById('pending-count').textContent = tasks.filter(t => !t.done).length;
+  }
+
+  document.getElementById('task-title').addEventListener('keypress', e => {
+    if (e.key === 'Enter') addTask();
+  });
+
+  fetchTasks();
+</script>
+</body>
+</html>
